@@ -25,6 +25,8 @@ exit /b 1
 
 :CHECK_CLI
 set "CLI=%~dp0arduino-cli.exe"
+set "CLI_CONFIG_ARGS="
+if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml" set "CLI_CONFIG_ARGS=--config-file \"%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml\""
 if not exist "%CLI%" (
     echo [ERROR] arduino-cli.exe not found next to this BAT file.
     echo Place arduino-cli.exe in the same folder.
@@ -35,7 +37,7 @@ exit /b 0
 :CHECK_PORT
 echo.
 echo [1/3] Searching for connected ESP32 COM port...
-"%CLI%" board list > "%temp%\esp32-boards.txt" 2>nul
+"%CLI%" !CLI_CONFIG_ARGS! board list > "%temp%\esp32-boards.txt" 2>nul
 set "COM_PORT="
 for /f "tokens=1" %%A in ('type "%temp%\esp32-boards.txt" ^| findstr /I "COM"') do (
     if not defined COM_PORT set "COM_PORT=%%A"
@@ -123,7 +125,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/3] Compiling with !LAYOUT! layout...
-"%CLI%" compile --fqbn esp32:esp32:esp32 --build-path "%BUILD_DIR%" "%TEMP_SKETCH%"
+"%CLI%" !CLI_CONFIG_ARGS! compile --fqbn esp32:esp32:esp32 --build-path "%BUILD_DIR%" "%TEMP_SKETCH%"
 if errorlevel 1 (
     echo [ERROR] Compilation failed.
     goto FAILED
@@ -131,7 +133,7 @@ if errorlevel 1 (
 
 echo.
 echo [3/3] Uploading firmware to !COM_PORT!...
-"%CLI%" upload -p !COM_PORT! --fqbn esp32:esp32:esp32 "%TEMP_SKETCH%"
+"%CLI%" !CLI_CONFIG_ARGS! upload -p !COM_PORT! --fqbn esp32:esp32:esp32 "%TEMP_SKETCH%"
 if errorlevel 1 (
     echo [ERROR] Upload failed. Try holding the BOOT button.
     goto FAILED
