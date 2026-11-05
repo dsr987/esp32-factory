@@ -45,7 +45,17 @@ jobs:
           arduino-cli config init --overwrite
           arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32@2.0.9
+          for attempt in 1 2 3; do
+            if arduino-cli core install esp32:esp32@2.0.9; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::ESP32 Arduino Core installation failed after 3 attempts"
+              exit 1
+            fi
+            echo "ESP32 core download failed; retrying in 15 seconds ($attempt/3)..."
+            sleep 15
+          done
 
       - name: Install libraries
         run: |
