@@ -1,0 +1,198 @@
+name: Build ESP32 Factory
+
+on:
+  push:
+    branches: [main, "feature/**"]
+    tags: ["v*"]
+    paths:
+      - "factory/**"
+      - "partitions/**"
+      - "tools/validate_partitions.py"
+      - "tools/ESP32-Auto-Flasher.bat"
+      - "tools/README.md"
+      - ".github/workflows/build-factory.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish a versioned GitHub Release after a successful build"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      factory_version: ${{ steps.factory_version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read Factory version
+        id: factory_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*//p' factory/factory.ino | head -n 1 | tr -d '\r')"
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            test "$GITHUB_REF_NAME" = "v$version" || {
+              echo "::error::Tag $GITHUB_REF_NAME does not match Factory version v$version"
+              exit 1
+            }
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate partition layouts
+        run: python tools/validate_partitions.py
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install esptool dependency
+        run: python -m pip install pyserial
+
+      - name: Install ESP32 Arduino core
+        shell: bash
+        run: |
+          set -euo pipefail
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          for attempt in 1 2 3; do
+            if arduino-cli core install esp32:esp32@2.0.9; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::ESP32 Arduino Core installation failed after 3 attempts"
+              exit 1
+            fi
+            echo "ESP32 core download failed; retrying in 15 seconds ($attempt/3)..."
+            sleep 15
+          done
+
+      - name: Install libraries
+        run: |
+          set -euo pipefail
+          arduino-cli lib update-index
+          arduino-cli lib install "AsyncTCP@1.1.4"
+          arduino-cli lib install "ESPAsyncWebServer@3.1.0"
+          arduino-cli lib install "ElegantOTA@3.1.0"
+
+      - name: Build both Factory images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          ESP32_ROOT="$HOME/.arduino15/packages/esp32/hardware/esp32/2.0.9"
+          BOOT_APP0="$ESP32_ROOT/tools/partitions/boot_app0.bin"
+          ESPTOOL="$(find "$HOME/.arduino15/packages/esp32/tools/esptool_py" -type f -name esptool.py -print -quit)"
+          test -s "$BOOT_APP0"
+          test -s "$ESPTOOL"
+
+          for layout in basic extended; do
+            STAGE="$RUNNER_TEMP/$layout/factory"
+            BUILD="$RUNNER_TEMP/build-$layout"
+            mkdir -p "$STAGE"
+            cp factory/factory.ino "$STAGE/factory.ino"
+            cp "partitions/$layout.csv" "$STAGE/partitions.csv"
+
+            arduino-cli compile \
+              --fqbn esp32:esp32:esp32 \
+              --build-property compiler.cpp.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" \
+              --build-path "$BUILD" \
+              "$STAGE"
+
+            APP="$BUILD/factory.ino.bin"
+            BOOTLOADER="$BUILD/factory.ino.bootloader.bin"
+            PARTITIONS="$BUILD/factory.ino.partitions.bin"
+            test -s "$APP"
+            test -s "$BOOTLOADER"
+            test -s "$PARTITIONS"
+
+            if [ "$layout" = "basic" ]; then
+              SLOT_SIZE=$((0x140000))
+            else
+              SLOT_SIZE=$((0x1E0000))
+            fi
+
+            APP_SIZE="$(stat -c%s "$APP")"
+            if [ "$APP_SIZE" -gt "$SLOT_SIZE" ]; then
+              echo "::error::Factory app ($APP_SIZE bytes) exceeds $layout OTA slot ($SLOT_SIZE bytes)"
+              exit 1
+            fi
+
+            python "$ESPTOOL" --chip esp32 merge_bin \
+              --target-offset 0x0 \
+              -o "dist/factory-$layout.bin" \
+              --flash_mode dio --flash_freq 40m --flash_size 4MB \
+              0x1000 "$BOOTLOADER" \
+              0x8000 "$PARTITIONS" \
+              0xE000 "$BOOT_APP0" \
+              0x10000 "$APP"
+
+            cp "$PARTITIONS" "dist/partitions-$layout.bin"
+            echo "$layout: app=$APP_SIZE bytes, slot=$SLOT_SIZE bytes"
+          done
+
+          cp "$BOOT_APP0" dist/boot_app0.bin
+          cp tools/ESP32-Auto-Flasher.bat dist/ESP32-Auto-Flasher.bat
+          cp tools/README.md dist/README-flasher.md
+          mkdir -p dist/partitions
+          cp partitions/basic.csv partitions/extended.csv dist/partitions/
+          (cd dist && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
+      - name: Upload Factory bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-factory-4mb
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: build
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Factory bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: esp32-factory-4mb
+          path: dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', needs.build.outputs.factory_version) }}
+          target_commitish: ${{ github.sha }}
+          name: ESP32 Factory v${{ needs.build.outputs.factory_version }}
+          generate_release_notes: true
+          files: |
+            dist/factory-basic.bin
+            dist/factory-extended.bin
+            dist/boot_app0.bin
+            dist/partitions-basic.bin
+            dist/partitions-extended.bin
+            dist/ESP32-Auto-Flasher.bat
+            dist/partitions/basic.csv
+            dist/partitions/extended.csv
+            dist/README-flasher.md
+            dist/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+          make_latest: true
