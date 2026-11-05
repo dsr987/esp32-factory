@@ -126,7 +126,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/3] Compiling with !LAYOUT! layout...
-"%CLI%" !CLI_CONFIG_ARGS! compile --fqbn esp32:esp32:esp32 --build-path "%BUILD_DIR%" "%TEMP_SKETCH%"
+"%CLI%" !CLI_CONFIG_ARGS! compile --fqbn esp32:esp32:esp32 --build-property compiler.cpp.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" --build-path "%BUILD_DIR%" "%TEMP_SKETCH%"
 if errorlevel 1 (
     echo [ERROR] Compilation failed.
     goto FAILED
@@ -134,7 +134,7 @@ if errorlevel 1 (
 
 echo.
 echo [3/3] Uploading firmware to !COM_PORT!...
-"%CLI%" !CLI_CONFIG_ARGS! upload -p !COM_PORT! --fqbn esp32:esp32:esp32 "%TEMP_SKETCH%"
+"%CLI%" !CLI_CONFIG_ARGS! upload --input-dir "%BUILD_DIR%" -p !COM_PORT! --fqbn esp32:esp32:esp32 "%TEMP_SKETCH%"
 if errorlevel 1 (
     echo [ERROR] Upload failed. Try holding the BOOT button.
     goto FAILED
