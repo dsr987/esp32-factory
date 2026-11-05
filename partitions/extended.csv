@@ -1,0 +1,10 @@
+# Extended layout for classic ESP32 with 4 MiB flash.
+# Two maximum-size, 64 KiB-aligned OTA slots: 0x1F0000 (1.9375 MiB) each.
+# SPIFFS, coredump and separate phy_init partitions are omitted.
+# Arduino ESP32 default configuration embeds PHY init data in the application.
+# NVS and OTA metadata remain at the same addresses as in Basic.
+# Name,   Type, SubType, Offset,   Size,      Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xE000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1F0000,
+app1,     app,  ota_1,   0x200000, 0x1F0000,
