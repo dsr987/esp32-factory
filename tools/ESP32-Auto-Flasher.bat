@@ -26,7 +26,7 @@ exit /b 1
 :CHECK_CLI
 set "CLI=%~dp0arduino-cli.exe"
 set "CLI_CONFIG_ARGS="
-if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml" set "CLI_CONFIG_ARGS=--config-file \"%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml\""
+if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml" set CLI_CONFIG_ARGS=--config-file "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml"
 if not exist "%CLI%" (
     echo [ERROR] arduino-cli.exe not found next to this BAT file.
     echo Place arduino-cli.exe in the same folder.
