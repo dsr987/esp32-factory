@@ -7,6 +7,8 @@ on:
       - "factory/**"
       - "partitions/**"
       - "tools/validate_partitions.py"
+      - "tools/ESP32-Auto-Flasher.bat"
+      - "tools/README.md"
       - ".github/workflows/build-factory.yml"
   pull_request:
     branches: [main]
@@ -32,6 +34,9 @@ jobs:
 
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
+
+      - name: Install esptool dependency
+        run: python -m pip install pyserial
 
       - name: Install ESP32 Arduino core
         shell: bash
@@ -111,12 +116,12 @@ jobs:
           cp tools/README.md dist/README-flasher.md
           mkdir -p dist/partitions
           cp partitions/basic.csv partitions/extended.csv dist/partitions/
-          sha256sum dist/* dist/partitions/* > dist/SHA256SUMS.txt
+          (cd dist && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
 
       - name: Upload Factory bundle
         uses: actions/upload-artifact@v4
         with:
           name: esp32-factory-4mb
-          path: dist/*
+          path: dist/
           if-no-files-found: error
           retention-days: 30
