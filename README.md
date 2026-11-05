@@ -1,1 +1,103 @@
-# esp32-factory
+# ESP32 Factory
+
+Универсальная заводская прошивка для классических плат ESP32 с Flash 4 MiB.
+
+Factory предназначена только для первичной установки и восстановления. Она не содержит логики Autoheater или LEGO Technic. После установки через ElegantOTA загружается прошивка конкретного проекта, и Factory заменяется ею.
+
+## Поддерживаемые платы
+
+- Классический ESP32 / ESP32-WROOM-32.
+- Flash: 4 MiB.
+- PSRAM не требуется.
+- ESP32 DevKit V1/V3, включая платы с USB Type-C и 30 контактами.
+
+Платы ESP32-S2, ESP32-S3, ESP32-C3 и платы с другой ёмкостью Flash этими образами не поддерживаются.
+
+## Таблицы разделов
+
+Оба варианта используют два OTA-слота. NVS и otadata находятся по одинаковым адресам, поэтому Preferences и OTA-механизм работают одинаково.
+
+| Раздел | Basic | Extended |
+|---|---:|---:|
+| NVS | 20 KiB | 20 KiB |
+| OTA metadata | 8 KiB | 8 KiB |
+| OTA slot 0 | 0x140000 (1280 KiB) | 0x1E0000 (1920 KiB) |
+| OTA slot 1 | 0x140000 (1280 KiB) | 0x1E0000 (1920 KiB) |
+| SPIFFS | 1408 KiB | 128 KiB |
+| coredump | 64 KiB | 64 KiB |
+
+- **Basic** совпадает со стандартной таблицей Arduino ESP32 Core 2.0.9 (`default.csv`). Используется Autoheater ESP32.
+- **Extended** совпадает с `min_spiffs.csv` Arduino ESP32 Core 2.0.9. Используется LEGO Technic ESP32.
+
+Оба варианта помещаются во Flash 4 MiB. Extended оставляет SPIFFS только небольшой резерв, зато увеличивает каждый OTA-слот до 1.875 MiB. Это не оперативная память: отсутствие PSRAM на размер Flash-разделов не влияет.
+
+## Установка и восстановление
+
+1. Открой страницу **Actions** этого репозитория.
+2. Открой последний успешный запуск **Build ESP32 Factory**.
+3. Скачай artifact `esp32-factory-4mb` и распакуй его целиком в одну папку.
+4. Подключи ESP32 по USB.
+5. Запусти `ESP32-Auto-Flasher.bat`.
+6. Выбери **3. Factory Reset**, затем нужную разметку:
+   - Autoheater: **Basic**.
+   - LEGO Technic: **Extended**.
+7. Подтверди стирание, введя `ERASE`.
+
+Factory Reset полностью стирает Flash, включая прошивку, NVS и сохранённые через Preferences настройки. Затем записывается полный образ Factory с загрузчиком, таблицей разделов и приложением.
+
+### Требования к Windows-компьютеру
+
+Для BAT-скрипта нужны:
+
+- `arduino-cli.exe` рядом с BAT либо установленный в `%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.exe`;
+- Arduino ESP32 Core **2.0.9**, установленный через Arduino CLI;
+- драйвер USB-UART платы (если Windows не определила COM-порт).
+
+Скрипт ищет `esptool.exe` в стандартной папке Arduino15 и в каталоге portable Arduino CLI LEGO Technic. Если COM-порт не найден автоматически, его можно ввести вручную.
+
+Для режима **Flash project (.ino)** дополнительно нужны библиотеки, требуемые выбранным проектом. Режим **Flash firmware (.bin)** принимает только app-only BIN, собранный под выбранную таблицу разделов. Полный Factory BIN в этом режиме использовать нельзя.
+
+## После установки Factory
+
+Factory поднимает точку доступа:
+
+- SSID: `ESP32`
+- Password: `12345678`
+
+Открой `http://192.168.4.1/update`.
+
+- ElegantOTA username: `admin`
+- ElegantOTA password: `admin`
+
+Загрузи app-only BIN нужного проекта. После успешного OTA Factory будет заменена проектной прошивкой.
+
+## Обновление проектной прошивки
+
+Для обычного обновления используй ElegantOTA на уже установленной проектной прошивке. Повторный Factory Reset не нужен.
+
+Если прошиваешь app-only BIN по USB через BAT, скрипт записывает его в OTA slot 0 и инициализирует OTA metadata. BIN должен быть собран именно под установленный layout. Сам BIN не содержит таблицу разделов, поэтому определить совместимость только по файлу невозможно.
+
+## Состав artifact
+
+- `factory-basic.bin` — полный merged image для Basic.
+- `factory-extended.bin` — полный merged image для Extended.
+- `boot_app0.bin` — инициализатор OTA metadata для ручных операций.
+- `partitions-basic.bin`, `partitions-extended.bin` — бинарные таблицы разделов.
+- `partitions/*.csv` — исходные таблицы.
+- `ESP32-Auto-Flasher.bat` — Windows flasher.
+- `README-flasher.md` — краткая инструкция по BAT.
+- `SHA256SUMS.txt` — контрольные суммы файлов.
+
+## Сборка
+
+GitHub Actions проверяет обе таблицы, устанавливает Arduino ESP32 Core 2.0.9, собирает два Factory-образа и публикует artifact. Версия Factory находится в заголовке `factory/factory.ino`.
+
+Версионированный GitHub Release можно создать:
+- push тега, совпадающего с версией Factory (например, `v1.0.0`);
+- либо ручным запуском workflow **Build ESP32 Factory** с параметром `publish_release=true`.
+
+## Важное
+
+- Не прошивай Basic-образ на плату, уже настроенную под Extended, и наоборот, без Factory Reset.
+- Factory Reset стирает NVS. Сохранённые Preferences после него восстановить нельзя.
+- Перед Factory Reset убедись, что выбран правильный layout для проекта.

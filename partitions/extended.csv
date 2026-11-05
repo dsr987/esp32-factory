@@ -1,0 +1,11 @@
+# Extended layout for classic ESP32 with 4 MiB flash.
+# Matches Arduino ESP32 2.0.9 min_spiffs.csv.
+# Two OTA slots: 0x1E0000 (1920 KiB / 1.875 MiB) each.
+# Keeps a small 128 KiB SPIFFS partition and 64 KiB coredump.
+# Name,   Type, SubType, Offset,   Size,      Flags
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xE000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x1E0000,
+app1,     app,  ota_1,   0x1F0000, 0x1E0000,
+spiffs,   data, spiffs,  0x3D0000, 0x20000,
+coredump, data, coredump,0x3F0000, 0x10000,
