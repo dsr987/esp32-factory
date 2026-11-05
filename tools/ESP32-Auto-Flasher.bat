@@ -57,6 +57,9 @@ if defined LOCALAPPDATA (
     for /d %%D in ("%LOCALAPPDATA%\Arduino15\packages\esp32\tools\esptool_py\*") do (
         if exist "%%~fD\esptool.exe" set "ESPTOOL=%%~fD\esptool.exe"
     )
+    for /d %%D in ("%LOCALAPPDATA%\LegoTechnicESP32\data\packages\esp32\tools\esptool_py\*") do (
+        if exist "%%~fD\esptool.exe" set "ESPTOOL=%%~fD\esptool.exe"
+    )
 )
 if not defined ESPTOOL (
     echo [ERROR] esptool.exe not found in the Arduino ESP32 core installation.
