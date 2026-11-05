@@ -35,6 +35,11 @@
 
 Оба варианта рассчитаны на Flash 4 MiB. Extended соответствует стандартной схеме `min_spiffs` в Arduino ESP32 Core 2.0.9 и оставляет небольшой раздел SPIFFS размером 128 KiB.
 
+### Какой вариант выбирать
+
+- **Autoheater ESP32** — Basic. Проект использует стандартную таблицу Arduino ESP32 с OTA-слотами `0x140000`.
+- **LEGO Technic ESP32** — Extended. Этот вариант совпадает с уже используемой в проекте схемой `min_spiffs`: OTA-слоты `0x1E0000`, SPIFFS 128 KiB и coredump 64 KiB.
+
 В обеих таблицах сохранены:
 - NVS `0x9000..0xDFFF`, 20 KiB. Здесь работают Arduino Preferences и другие настройки.
 - OTA metadata `0xE000..0xFFFF`, 8 KiB.
