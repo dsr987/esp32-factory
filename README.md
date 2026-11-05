@@ -51,7 +51,7 @@ PSRAM для этих таблиц не требуется. Размер Flash �
 
 ## Как использовать
 
-1. Скачайте комплект из GitHub Actions artifact или из GitHub Release.
+1. Скачайте комплект из GitHub Actions artifact успешной сборки.
 2. Поместите BAT-файл, `arduino-cli.exe`, Factory-образы и `boot_app0.bin` в одну папку. Установите ESP32 Arduino Core 2.0.9 через Arduino CLI, чтобы BAT мог найти esptool.
 3. Запустите `ESP32-Auto-Flasher.bat`.
 4. Для первой установки выберите **Factory Reset**, затем Basic или Extended.
