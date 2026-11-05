@@ -78,7 +78,7 @@ if /I "!LAYOUT!"=="basic" (
     set "SLOT_SIZE=1310720"
     set "PARTITION_CSV=%~dp0partitions\basic.csv"
 ) else (
-    set "SLOT_SIZE=2031616"
+    set "SLOT_SIZE=1966080"
     set "PARTITION_CSV=%~dp0partitions\extended.csv"
 )
 exit /b 0
@@ -187,7 +187,7 @@ if errorlevel 1 goto FAILED
 echo.
 echo Select partition layout:
 echo  1. Basic    (2 x 1.25 MiB OTA)
-echo  2. Extended (2 x 1.9375 MiB OTA)
+echo  2. Extended (2 x 1.875 MiB OTA)
 echo.
 set /p LAYOUT_CHOICE="Select layout: "
 if "!LAYOUT_CHOICE!"=="1" (
