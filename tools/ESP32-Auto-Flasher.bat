@@ -3,6 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 title ESP32 Auto-Flasher
 set "RESULT=1"
 
+:MENU
 echo ====================================================
 echo              ESP32 AUTO-FLASHER
 echo ====================================================
@@ -11,6 +12,8 @@ echo  1. Flash project (.ino)
 echo  2. Flash firmware (.bin)
 echo  3. Factory Reset
 echo  4. Exit
+echo  5. Select/change active layout
+echo  R. Restart menu
 echo.
 set /p ACTION="Select option: "
 
@@ -18,11 +21,12 @@ if "%ACTION%"=="1" goto FLASH_INO
 if "%ACTION%"=="2" goto FLASH_BIN
 if "%ACTION%"=="3" goto FACTORY_RESET
 if "%ACTION%"=="4" exit /b 0
+if /I "%ACTION%"=="5" goto CHANGE_LAYOUT
+if /I "%ACTION%"=="R" goto MENU
 
 echo.
 echo [ERROR] Invalid menu option.
-pause
-exit /b 1
+goto DONE
 
 :CHECK_CLI
 set "CLI=%~dp0arduino-cli.exe"
@@ -72,14 +76,38 @@ if not defined ESPTOOL (
 )
 exit /b 0
 
+:SELECT_LAYOUT
+echo.
+echo [WARNING] This changes the layout selected by this PC-side script only.
+echo It does NOT read or change the partition table inside the ESP32.
+echo Select the layout that is ALREADY installed on the connected controller.
+echo Choosing the wrong layout can make a firmware upload fail or boot incorrectly.
+echo.
+echo  1. Basic    (2 x 1.25 MiB OTA)
+echo  2. Extended (2 x 1.875 MiB OTA)
+echo  0. Cancel
+echo.
+set /p LAYOUT_CHOICE="Select installed layout: "
+if "!LAYOUT_CHOICE!"=="1" (
+    set "LAYOUT=basic"
+) else if "!LAYOUT_CHOICE!"=="2" (
+    set "LAYOUT=extended"
+) else (
+    echo [INFO] Layout selection cancelled.
+    exit /b 1
+)
+>"%~dp0active_layout.txt" echo !LAYOUT!
+echo [OK] Active layout saved as !LAYOUT! in active_layout.txt.
+exit /b 0
+
 :LOAD_LAYOUT
 set "LAYOUT="
 if exist "%~dp0active_layout.txt" set /p LAYOUT=<"%~dp0active_layout.txt"
 if /I not "!LAYOUT!"=="basic" if /I not "!LAYOUT!"=="extended" set "LAYOUT="
 if not defined LAYOUT (
-    echo [ERROR] Active layout is unknown.
-    echo Run Factory Reset first and select Basic or Extended.
-    exit /b 1
+    echo [INFO] No valid active_layout.txt was found.
+    call :SELECT_LAYOUT
+    if errorlevel 1 exit /b 1
 )
 if /I "!LAYOUT!"=="basic" (
     set "SLOT_SIZE=1310720"
@@ -89,6 +117,12 @@ if /I "!LAYOUT!"=="basic" (
     set "PARTITION_CSV=%~dp0partitions\extended.csv"
 )
 exit /b 0
+
+:CHANGE_LAYOUT
+call :SELECT_LAYOUT
+if errorlevel 1 goto DONE
+set "RESULT=0"
+goto DONE
 
 :FLASH_INO
 call :CHECK_CLI
@@ -262,5 +296,7 @@ echo.
 echo [FAILED] Operation did not complete.
 :DONE
 echo.
-pause
-exit /b %RESULT%
+choice /C RE /N /M "Press R to return to the menu, or E to exit: "
+if errorlevel 2 exit /b !RESULT!
+if errorlevel 1 goto MENU
+exit /b !RESULT!
