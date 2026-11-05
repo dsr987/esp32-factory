@@ -108,7 +108,7 @@ if exist "%TEMP_SKETCH%" rmdir /s /q "%TEMP_SKETCH%"
 if exist "%BUILD_DIR%" rmdir /s /q "%BUILD_DIR%"
 mkdir "%TEMP_SKETCH%" >nul 2>&1
 xcopy "!SKETCH_DIR!\*" "%TEMP_SKETCH%\" /E /I /H /Y >nul
-if errorlevel 1 (
+if errorlevel 2 (
     echo [ERROR] Failed to copy sketch to temporary folder.
     goto FAILED
 )
