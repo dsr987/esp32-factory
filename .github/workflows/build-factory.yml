@@ -107,7 +107,11 @@ jobs:
           done
 
           cp "$BOOT_APP0" dist/boot_app0.bin
-          sha256sum dist/* > dist/SHA256SUMS.txt
+          cp tools/ESP32-Auto-Flasher.bat dist/ESP32-Auto-Flasher.bat
+          cp tools/README.md dist/README-flasher.md
+          mkdir -p dist/partitions
+          cp partitions/basic.csv partitions/extended.csv dist/partitions/
+          sha256sum dist/* dist/partitions/* > dist/SHA256SUMS.txt
 
       - name: Upload Factory bundle
         uses: actions/upload-artifact@v4
