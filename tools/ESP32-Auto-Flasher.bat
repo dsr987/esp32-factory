@@ -163,6 +163,12 @@ if not exist "!BIN_FILE!" (
     goto FAILED
 )
 for %%I in ("!BIN_FILE!") do set "BIN_SIZE=%%~zI"
+for /f "delims=" %%A in ('powershell -NoProfile -Command "$b = Get-Content -LiteralPath '!BIN_FILE!' -Encoding Byte -TotalCount 1; if ($b.Length -gt 0) { '{0:X2}' -f $b[0] }"') do set "BIN_MAGIC=%%A"
+if /I not "!BIN_MAGIC!"=="E9" (
+    echo [ERROR] This does not look like an app-only ESP32 firmware BIN.
+    echo Do not select a merged Factory image here.
+    goto FAILED
+)
 if !BIN_SIZE! GTR !SLOT_SIZE! (
     echo [ERROR] BIN is !BIN_SIZE! bytes, larger than !LAYOUT! OTA slot !SLOT_SIZE! bytes.
     goto FAILED
