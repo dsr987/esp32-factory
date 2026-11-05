@@ -59,6 +59,14 @@ jobs:
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
 
+      - name: Cache Arduino ESP32 platform
+        uses: actions/cache@v4
+        with:
+          path: ~/.arduino15
+          key: esp32-core-2.0.9-${{ runner.os }}
+          restore-keys: |
+            esp32-core-2.0.9-${{ runner.os }}-
+
       - name: Install esptool dependency
         run: python -m pip install pyserial
 
