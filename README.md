@@ -46,7 +46,6 @@ Factory предназначена только для первичной уст
    - LEGO Technic: **Extended**.
 6. Подтверди стирание, введя `ERASE`.
 
-Если нужен не опубликованный комплект, а свежая сборка из текущего исходного кода, её можно скачать из artifact последнего успешного запуска **Build ESP32 Factory** на странице **Actions**.
 
 Factory Reset полностью стирает Flash, включая прошивку, NVS и сохранённые через Preferences настройки. Затем записывается полный образ Factory с загрузчиком, таблицей разделов и приложением.
 
@@ -106,9 +105,11 @@ Factory поднимает точку доступа:
 
 ## Сборка
 
-GitHub Actions проверяет обе таблицы, устанавливает Arduino ESP32 Core 2.0.9, собирает два Factory-образа и публикует artifact `esp32-factory-4mb`. Artifact сборки временный; для постоянного скачивания готовый ZIP прикреплён к [GitHub Release](https://github.com/dsr987/esp32-factory/releases/tag/Release).
+GitHub Actions проверяет обе таблицы, устанавливает Arduino ESP32 Core 2.0.9 и собирает два Factory-образа.
 
-Версия Factory находится в заголовке `factory/factory.ino`. При выпуске новой версии обнови Release и замени прикреплённый ZIP архивом из соответствующей успешной сборки.
+Готовый комплект для скачивания опубликован в [ESP32 Firmware with ElegantOTA 1.0](https://github.com/dsr987/esp32-factory/releases/tag/Release).
+
+Версия Factory находится в заголовке `factory/factory.ino`. При выпуске новой версии обнови опубликованный Release.
 
 ## Важное
 
