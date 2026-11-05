@@ -3,7 +3,7 @@
 The BAT file expects the following files in one distribution folder:
 
 - `ESP32-Auto-Flasher.bat`
-- `arduino-cli.exe`
+- `arduino-cli.exe` (or an existing portable copy at `%LOCALAPPDATA%\\LegoTechnicESP32\\arduino-cli.exe`)
 - `factory-basic.bin`
 - `factory-extended.bin`
 - `boot_app0.bin`
