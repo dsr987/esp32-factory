@@ -32,14 +32,126 @@ goto DONE
 
 :CHECK_CLI
 set "CLI=%~dp0arduino-cli.exe"
-if not exist "%CLI%" if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.exe" set "CLI=%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.exe"
 set "CLI_CONFIG_ARGS="
+if not exist "%CLI%" if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.exe" set "CLI=%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.exe"
 if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml" set CLI_CONFIG_ARGS=--config-file "%LOCALAPPDATA%\LegoTechnicESP32\arduino-cli.yaml"
+
 if not exist "%CLI%" (
-    echo [ERROR] Arduino CLI was not found.
-    echo Place arduino-cli.exe next to this BAT or install the portable LEGO CLI.
+    echo.
+    echo [MISSING] Arduino CLI is not installed.
+    choice /C YN /N /M "Download and install Arduino CLI now? [Y/N]: "
+    if errorlevel 2 exit /b 1
+
+    set "ESP32_CLI_HOME=%LOCALAPPDATA%\LegoTechnicESP32"
+    if not exist "!ESP32_CLI_HOME!" mkdir "!ESP32_CLI_HOME!"
+    echo Downloading Arduino CLI...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $zip=Join-Path $env:TEMP 'arduino-cli-windows.zip'; Invoke-WebRequest -UseBasicParsing 'https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip' -OutFile $zip; Expand-Archive -LiteralPath $zip -DestinationPath $env:ESP32_CLI_HOME -Force; Remove-Item $zip -Force"
+    if errorlevel 1 (
+        echo [ERROR] Arduino CLI download or extraction failed.
+        exit /b 1
+    )
+    set "CLI=!ESP32_CLI_HOME!\arduino-cli.exe"
+    if not exist "!CLI!" (
+        echo [ERROR] arduino-cli.exe was not found after extraction.
+        exit /b 1
+    )
+    "!CLI!" config init --overwrite --dest-dir "!ESP32_CLI_HOME!" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to create Arduino CLI configuration.
+        exit /b 1
+    )
+    set CLI_CONFIG_ARGS=--config-file "!ESP32_CLI_HOME!\arduino-cli.yaml"
+)
+
+if not exist "%CLI%" (
+    echo [ERROR] Arduino CLI executable was not found.
     exit /b 1
 )
+exit /b 0
+
+:CHECK_DEPENDENCIES
+set "NEED_CORE=0"
+set "NEED_ASYNCTCP=0"
+set "NEED_WEBSERVER=0"
+set "NEED_ELEGANTOTA=0"
+set "CHECK_TEMP=%temp%\esp32-cli-check"
+
+set "NEED_CORE=1"
+"%CLI%" !CLI_CONFIG_ARGS! core list > "!CHECK_TEMP!-core.txt" 2>nul
+for /f "tokens=1,2" %%A in ('findstr /I /B /C:"esp32:esp32 " "!CHECK_TEMP!-core.txt"') do if "%%B"=="2.0.9" set "NEED_CORE=0"
+
+if "!CHECK_LIBS!"=="1" (
+    set "NEED_ASYNCTCP=1"
+    set "NEED_WEBSERVER=1"
+    set "NEED_ELEGANTOTA=1"
+    "%CLI%" !CLI_CONFIG_ARGS! lib list > "!CHECK_TEMP!-libs.txt" 2>nul
+
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"AsyncTCP " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="1.1.4" set "NEED_ASYNCTCP=0"
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"ESPAsyncWebServer " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="3.1.0" set "NEED_WEBSERVER=0"
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"ElegantOTA " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="3.1.0" set "NEED_ELEGANTOTA=0"
+)
+
+if "!NEED_CORE!"=="0" if "!NEED_ASYNCTCP!"=="0" if "!NEED_WEBSERVER!"=="0" if "!NEED_ELEGANTOTA!"=="0" (
+    echo [OK] Arduino ESP32 Core and required libraries are installed.
+    goto DEPENDENCIES_DONE
+)
+
+echo.
+echo [MISSING] The following build dependencies are missing or have the wrong version:
+if "!NEED_CORE!"=="1" echo   - Arduino ESP32 Core 2.0.9
+if "!NEED_ASYNCTCP!"=="1" echo   - AsyncTCP 1.1.4
+if "!NEED_WEBSERVER!"=="1" echo   - ESPAsyncWebServer 3.1.0
+if "!NEED_ELEGANTOTA!"=="1" echo   - ElegantOTA 3.1.0
+choice /C YN /N /M "Install the missing dependencies now? [Y/N]: "
+if errorlevel 2 (
+    del "!CHECK_TEMP!-*.txt" >nul 2>&1
+    exit /b 1
+)
+
+if "!NEED_CORE!"=="1" (
+    "%CLI%" !CLI_CONFIG_ARGS! config dump > "!CHECK_TEMP!-config.txt" 2>nul
+    findstr /I /C:"https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json" "!CHECK_TEMP!-config.txt" >nul
+    if errorlevel 1 (
+        "%CLI%" !CLI_CONFIG_ARGS! config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+        if errorlevel 1 goto DEPENDENCIES_FAILED
+    )
+    echo Installing Arduino ESP32 Core 2.0.9...
+    "%CLI%" !CLI_CONFIG_ARGS! core update-index
+    if errorlevel 1 goto DEPENDENCIES_FAILED
+    "%CLI%" !CLI_CONFIG_ARGS! core install esp32:esp32@2.0.9
+    if errorlevel 1 goto DEPENDENCIES_FAILED
+)
+
+if "!CHECK_LIBS!"=="1" (
+    "%CLI%" !CLI_CONFIG_ARGS! lib update-index
+    if errorlevel 1 goto DEPENDENCIES_FAILED
+    if "!NEED_ASYNCTCP!"=="1" (
+        echo Installing AsyncTCP 1.1.4...
+        "%CLI%" !CLI_CONFIG_ARGS! lib install "AsyncTCP@1.1.4"
+        if errorlevel 1 goto DEPENDENCIES_FAILED
+    )
+    if "!NEED_WEBSERVER!"=="1" (
+        echo Installing ESPAsyncWebServer 3.1.0...
+        "%CLI%" !CLI_CONFIG_ARGS! lib install "ESPAsyncWebServer@3.1.0"
+        if errorlevel 1 goto DEPENDENCIES_FAILED
+    )
+    if "!NEED_ELEGANTOTA!"=="1" (
+        echo Installing ElegantOTA 3.1.0...
+        "%CLI%" !CLI_CONFIG_ARGS! lib install "ElegantOTA@3.1.0"
+        if errorlevel 1 goto DEPENDENCIES_FAILED
+    )
+)
+
+echo [OK] All required dependencies are installed.
+goto DEPENDENCIES_DONE
+
+:DEPENDENCIES_FAILED
+echo [ERROR] Dependency installation failed. Check the messages above and try again.
+del "!CHECK_TEMP!-*.txt" >nul 2>&1
+exit /b 1
+
+:DEPENDENCIES_DONE
+del "!CHECK_TEMP!-*.txt" >nul 2>&1
 exit /b 0
 
 :CHECK_PORT
@@ -130,6 +242,9 @@ goto DONE
 :FLASH_INO
 call :CHECK_CLI
 if errorlevel 1 goto FAILED
+set "CHECK_LIBS=1"
+call :CHECK_DEPENDENCIES
+if errorlevel 1 goto FAILED
 call :LOAD_LAYOUT
 if errorlevel 1 goto FAILED
 
@@ -187,6 +302,9 @@ goto DONE
 :FLASH_BIN
 call :CHECK_CLI
 if errorlevel 1 goto FAILED
+set "CHECK_LIBS=0"
+call :CHECK_DEPENDENCIES
+if errorlevel 1 goto FAILED
 call :LOAD_LAYOUT
 if errorlevel 1 goto FAILED
 call :CHECK_ESPTOOL
@@ -235,6 +353,9 @@ goto DONE
 
 :FACTORY_RESET
 call :CHECK_CLI
+if errorlevel 1 goto FAILED
+set "CHECK_LIBS=0"
+call :CHECK_DEPENDENCIES
 if errorlevel 1 goto FAILED
 call :CHECK_ESPTOOL
 if errorlevel 1 goto FAILED
