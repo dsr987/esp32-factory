@@ -16,6 +16,7 @@ echo  4. Exit
 echo  5. Select/change active layout
 echo  R. Restart menu
 echo.
+set "ACTION="
 set /p ACTION="Select option: "
 
 if "%ACTION%"=="1" goto FLASH_INO
@@ -88,6 +89,7 @@ echo  1. Basic    (2 x 1.25 MiB OTA)
 echo  2. Extended (2 x 1.875 MiB OTA)
 echo  0. Cancel
 echo.
+set "LAYOUT_CHOICE="
 set /p LAYOUT_CHOICE="Select installed layout: "
 if "!LAYOUT_CHOICE!"=="1" (
     set "LAYOUT=basic"
@@ -132,6 +134,7 @@ call :LOAD_LAYOUT
 if errorlevel 1 goto FAILED
 
 echo.
+set "SKETCH_DIR="
 set /p SKETCH_DIR="Drag and drop sketch folder here: "
 set "SKETCH_DIR=!SKETCH_DIR:"=!"
 if not defined SKETCH_DIR goto FAILED
@@ -194,6 +197,8 @@ if not exist "%~dp0boot_app0.bin" (
 )
 
 echo.
+set "BIN_FILE="
+set "BIN_MAGIC="
 set /p BIN_FILE="Drag and drop app-only .bin file here: "
 set "BIN_FILE=!BIN_FILE:"=!"
 if not exist "!BIN_FILE!" (
@@ -239,6 +244,7 @@ echo Select partition layout:
 echo  1. Basic    (2 x 1.25 MiB OTA)
 echo  2. Extended (2 x 1.875 MiB OTA)
 echo.
+set "LAYOUT_CHOICE="
 set /p LAYOUT_CHOICE="Select layout: "
 if "!LAYOUT_CHOICE!"=="1" (
     set "LAYOUT=basic"
@@ -263,6 +269,7 @@ echo.
 echo [WARNING] FACTORY RESET WILL ERASE ALL FLASH DATA.
 echo Preferences, NVS settings and existing firmware will be deleted.
 echo The selected layout will be installed: !LAYOUT!
+set "CONFIRM="
 set /p CONFIRM="Type ERASE to continue: "
 if not "!CONFIRM!"=="ERASE" (
     echo Cancelled.
