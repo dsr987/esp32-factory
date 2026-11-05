@@ -92,7 +92,7 @@ Factory поднимает точку доступа:
 
 Если прошиваешь app-only BIN по USB через BAT, скрипт записывает его в OTA slot 0 и инициализирует OTA metadata. BIN должен быть собран именно под установленный layout. Сам BIN не содержит таблицу разделов, поэтому определить совместимость только по файлу невозможно.
 
-## Состав artifact
+## Состав архива релиза
 
 - `factory-basic.bin` — полный merged image для Basic.
 - `factory-extended.bin` — полный merged image для Extended.
