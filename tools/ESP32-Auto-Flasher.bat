@@ -4,6 +4,7 @@ title ESP32 Auto-Flasher
 set "RESULT=1"
 
 :MENU
+set "RESULT=1"
 echo ====================================================
 echo              ESP32 AUTO-FLASHER
 echo ====================================================
