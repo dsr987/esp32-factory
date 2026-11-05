@@ -8,7 +8,7 @@
 
 - Один общий скетч `factory/factory.ino`, не зависящий от конкретного проекта.
 - **Basic**: два OTA-слота по `0x140000` (1,25 MiB), стандартная разметка Arduino ESP32.
-- **Extended**: два OTA-слота по `0x1F0000` (1,9375 MiB, 1984 KiB) каждый, без SPIFFS и coredump.
+- **Extended**: два OTA-слота по `0x1E0000` (1,875 MiB, 1920 KiB) каждый, с небольшими SPIFFS (128 KiB) и coredump (64 KiB).
 - Полные Factory-образы с bootloader, partition table, OTA metadata и приложением.
 - BAT-флешер для Windows.
 - CI-сборка и проверка обеих таблиц.
@@ -31,9 +31,9 @@
 | Вариант | OTA slot 0 | OTA slot 1 | Дополнительные разделы |
 |---|---:|---:|---|
 | Basic | 1,25 MiB | 1,25 MiB | SPIFFS и coredump, как в стандартной таблице Arduino |
-| Extended | 1,9375 MiB | 1,9375 MiB | Нет |
+| Extended | 1,875 MiB | 1,875 MiB | SPIFFS 128 KiB и coredump 64 KiB |
 
-Оба варианта рассчитаны на Flash 4 MiB. Extended оставляет последние 64 KiB незанятыми из-за выравнивания и границ разделов.
+Оба варианта рассчитаны на Flash 4 MiB. Extended соответствует стандартной схеме `min_spiffs` в Arduino ESP32 Core 2.0.9 и оставляет небольшой раздел SPIFFS размером 128 KiB.
 
 В обеих таблицах сохранены:
 - NVS `0x9000..0xDFFF`, 20 KiB. Здесь работают Arduino Preferences и другие настройки.
@@ -66,7 +66,7 @@ PSRAM для этих таблиц не требуется. Размер Flash �
 
 - `factory/factory.ino` — единственный исходник Factory.
 - `partitions/basic.csv` — совместимая базовая разметка.
-- `partitions/extended.csv` — увеличенные OTA-разделы без файловой системы.
+- `partitions/extended.csv` — схема `min_spiffs` с OTA-слотами по 1920 KiB.
 - `tools/ESP32-Auto-Flasher.bat` — Windows-флешер.
 - `tools/validate_partitions.py` — проверка размеров, выравнивания и пересечений.
 - `.github/workflows/build-factory.yml` — сборка Factory-образов.
