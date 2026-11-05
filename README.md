@@ -2,6 +2,10 @@
 
 Универсальная заводская прошивка для классических плат ESP32 с Flash 4 MiB.
 
+## Скачать
+
+**[ESP32 Firmware with ElegantOTA 1.0](https://github.com/dsr987/esp32-factory/releases/tag/Release)** — готовый архив Factory для ESP32 с Flash 4 MiB. Скачай ZIP из раздела **Assets** последнего опубликованного релиза и распакуй его целиком в одну папку.
+
 Factory предназначена только для первичной установки и восстановления. Она не содержит логики Autoheater или LEGO Technic. После установки через ElegantOTA загружается прошивка конкретного проекта, и Factory заменяется ею.
 
 ## Поддерживаемые платы
@@ -33,15 +37,16 @@ Factory предназначена только для первичной уст
 
 ## Установка и восстановление
 
-1. Открой страницу **Actions** этого репозитория.
-2. Открой последний успешный запуск **Build ESP32 Factory**.
-3. Скачай artifact `esp32-factory-4mb` и распакуй его целиком в одну папку.
-4. Подключи ESP32 по USB.
-5. Запусти `ESP32-Auto-Flasher.bat`.
-6. Выбери **3. Factory Reset**, затем нужную разметку:
+1. Открой [последний релиз](https://github.com/dsr987/esp32-factory/releases/tag/Release).
+2. В разделе **Assets** скачай ZIP-архив Factory и распакуй его целиком в одну папку.
+3. Подключи ESP32 по USB.
+4. Запусти `ESP32-Auto-Flasher.bat`.
+5. Выбери **3. Factory Reset**, затем нужную разметку:
    - Autoheater: **Basic**.
    - LEGO Technic: **Extended**.
-7. Подтверди стирание, введя `ERASE`.
+6. Подтверди стирание, введя `ERASE`.
+
+Если нужен не опубликованный комплект, а свежая сборка из текущего исходного кода, её можно скачать из artifact последнего успешного запуска **Build ESP32 Factory** на странице **Actions**.
 
 Factory Reset полностью стирает Flash, включая прошивку, NVS и сохранённые через Preferences настройки. Затем записывается полный образ Factory с загрузчиком, таблицей разделов и приложением.
 
@@ -101,11 +106,9 @@ Factory поднимает точку доступа:
 
 ## Сборка
 
-GitHub Actions проверяет обе таблицы, устанавливает Arduino ESP32 Core 2.0.9, собирает два Factory-образа и публикует artifact. Версия Factory находится в заголовке `factory/factory.ino`.
+GitHub Actions проверяет обе таблицы, устанавливает Arduino ESP32 Core 2.0.9, собирает два Factory-образа и публикует artifact `esp32-factory-4mb`. Artifact сборки временный; для постоянного скачивания готовый ZIP прикреплён к [GitHub Release](https://github.com/dsr987/esp32-factory/releases/tag/Release).
 
-Версионированный GitHub Release можно создать:
-- push тега, совпадающего с версией Factory (например, `v1.0.0`);
-- либо ручным запуском workflow **Build ESP32 Factory** с параметром `publish_release=true`.
+Версия Factory находится в заголовке `factory/factory.ino`. При выпуске новой версии обнови Release и замени прикреплённый ZIP архивом из соответствующей успешной сборки.
 
 ## Важное
 
