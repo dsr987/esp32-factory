@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="$(sed -n 's/^[[:space:]]*\\*[[:space:]]*Version:[[:space:]]*//p' factory/factory.ino | head -n 1 | tr -d '\\r')"
+          version="$(sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*//p' factory/factory.ino | head -n 1 | tr -d '\r')"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
