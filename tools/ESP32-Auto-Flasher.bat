@@ -76,25 +76,19 @@ set "NEED_WEBSERVER=0"
 set "NEED_ELEGANTOTA=0"
 set "CHECK_TEMP=%temp%\esp32-cli-check"
 
+set "NEED_CORE=1"
 "%CLI%" !CLI_CONFIG_ARGS! core list > "!CHECK_TEMP!-core.txt" 2>nul
-findstr /I "esp32:esp32" "!CHECK_TEMP!-core.txt" > "!CHECK_TEMP!-core-row.txt"
-findstr /C:"2.0.9" "!CHECK_TEMP!-core-row.txt" >nul
-if errorlevel 1 set "NEED_CORE=1"
+for /f "tokens=1,2" %%A in ('findstr /I /B /C:"esp32:esp32 " "!CHECK_TEMP!-core.txt"') do if "%%B"=="2.0.9" set "NEED_CORE=0"
 
 if "!CHECK_LIBS!"=="1" (
+    set "NEED_ASYNCTCP=1"
+    set "NEED_WEBSERVER=1"
+    set "NEED_ELEGANTOTA=1"
     "%CLI%" !CLI_CONFIG_ARGS! lib list > "!CHECK_TEMP!-libs.txt" 2>nul
 
-    findstr /I /B /C:"AsyncTCP " "!CHECK_TEMP!-libs.txt" > "!CHECK_TEMP!-lib-row.txt"
-    findstr /C:"1.1.4" "!CHECK_TEMP!-lib-row.txt" >nul
-    if errorlevel 1 set "NEED_ASYNCTCP=1"
-
-    findstr /I /B /C:"ESPAsyncWebServer " "!CHECK_TEMP!-libs.txt" > "!CHECK_TEMP!-lib-row.txt"
-    findstr /C:"3.1.0" "!CHECK_TEMP!-lib-row.txt" >nul
-    if errorlevel 1 set "NEED_WEBSERVER=1"
-
-    findstr /I /B /C:"ElegantOTA " "!CHECK_TEMP!-libs.txt" > "!CHECK_TEMP!-lib-row.txt"
-    findstr /C:"3.1.0" "!CHECK_TEMP!-lib-row.txt" >nul
-    if errorlevel 1 set "NEED_ELEGANTOTA=1"
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"AsyncTCP " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="1.1.4" set "NEED_ASYNCTCP=0"
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"ESPAsyncWebServer " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="3.1.0" set "NEED_WEBSERVER=0"
+    for /f "tokens=1,2" %%A in ('findstr /I /B /C:"ElegantOTA " "!CHECK_TEMP!-libs.txt"') do if "%%B"=="3.1.0" set "NEED_ELEGANTOTA=0"
 )
 
 if "!NEED_CORE!"=="0" if "!NEED_ASYNCTCP!"=="0" if "!NEED_WEBSERVER!"=="0" if "!NEED_ELEGANTOTA!"=="0" (
