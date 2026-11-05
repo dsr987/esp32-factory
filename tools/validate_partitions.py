@@ -57,7 +57,7 @@ def read_partitions(path: Path) -> list[dict]:
     return sorted(rows, key=lambda item: item["offset"])
 
 
-def validate(path: Path, expected_slot: int, expect_spiffs: bool) -> None:
+def validate(path: Path, expected_slot: int, expected_spiffs_size: int) -> None:
     parts = read_partitions(path)
     names = [item["name"] for item in parts]
     if len(names) != len(set(names)):
@@ -104,8 +104,12 @@ def validate(path: Path, expected_slot: int, expect_spiffs: bool) -> None:
         raise ValueError(f"{path}: app1 overlaps app0")
 
     has_spiffs = any(item["type"] == "data" and item["subtype"] == "spiffs" for item in parts)
-    if has_spiffs != expect_spiffs:
-        raise ValueError(f"{path}: unexpected SPIFFS presence: {has_spiffs}")
+    if not has_spiffs:
+        raise ValueError(f"{path}: SPIFFS partition is required in both supported layouts")
+    if by_name["spiffs"]["size"] != expected_spiffs_size:
+        raise ValueError(f"{path}: SPIFFS size must be 0x{expected_spiffs_size:X}")
+    if "coredump" not in by_name or by_name["coredump"]["size"] != 0x10000:
+        raise ValueError(f"{path}: coredump must be 64 KiB")
 
     print(
         f"OK {path.relative_to(ROOT)}: "
@@ -118,8 +122,8 @@ def validate(path: Path, expected_slot: int, expect_spiffs: bool) -> None:
 
 def main() -> int:
     try:
-        validate(ROOT / "partitions" / "basic.csv", 0x140000, True)
-        validate(ROOT / "partitions" / "extended.csv", 0x1F0000, False)
+        validate(ROOT / "partitions" / "basic.csv", 0x140000, 0x160000)
+        validate(ROOT / "partitions" / "extended.csv", 0x1E0000, 0x20000)
     except (OSError, ValueError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
