@@ -89,7 +89,7 @@ jobs:
             if [ "$layout" = "basic" ]; then
               SLOT_SIZE=$((0x140000))
             else
-              SLOT_SIZE=$((0x1F0000))
+              SLOT_SIZE=$((0x1E0000))
             fi
 
             APP_SIZE="$(stat -c%s "$APP")"
